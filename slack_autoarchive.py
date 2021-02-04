@@ -9,6 +9,8 @@ import os
 import sys
 import time
 import json
+import random
+import fnmatch
 
 # not standard imports
 import requests
@@ -106,7 +108,9 @@ This script was run from this repo: https://github.com/Symantec/slack-autoarchiv
         api_endpoint = 'channels.list'
         channels = self.slack_api_http(api_endpoint=api_endpoint,
                                        payload=payload)['channels']
+
         all_channels = []
+
         for channel in channels:
             all_channels.append({
                 'id': channel['id'],
@@ -114,6 +118,7 @@ This script was run from this repo: https://github.com/Symantec/slack-autoarchiv
                 'created': channel['created'],
                 'num_members': channel['num_members']
             })
+
         return all_channels
 
     def get_last_message_timestamp(self, channel_history, too_old_datetime):
@@ -230,11 +235,25 @@ This script was run from this repo: https://github.com/Symantec/slack-autoarchiv
 
         whitelist_keywords = self.get_whitelist_keywords()
         alert_templates = self.get_channel_alerts()
+        max_archived_channels = self.settings.get('max_channels_archived')
+        only_channels_matching = self.settings.get('only_channels_matching')
+
+        all_channels = self.get_all_channels()
+        random.shuffle(all_channels)
+
         archived_channels = []
 
-        for channel in self.get_all_channels():
+        self.logger.info("Found %s channels to review." % len(all_channels))
+
+        for channel in all_channels:
             sys.stdout.write('.')
             sys.stdout.flush()
+
+            if only_channels_matching and not fnmatch.fnmatch(channel['name'], only_channels_matching):
+                continue
+
+            if max_archived_channels > 0 and len(archived_channels) >= max_archived_channels:
+                break
 
             channel_whitelisted = self.is_channel_whitelisted(
                 channel, whitelist_keywords)
