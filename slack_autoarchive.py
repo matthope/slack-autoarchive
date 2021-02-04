@@ -210,15 +210,17 @@ This script was run from this repo: https://github.com/Symantec/slack-autoarchiv
 
     def send_admin_report(self, channels):
         """ Optionally this will message admins with which channels were archived. """
-        if self.settings.get('admin_channel'):
-            channel_names = ', '.join('#' + channel['name']
-                                      for channel in channels)
-            admin_msg = 'Archiving %d channels: %s' % (len(channels),
+        channel_names = ', '.join('#' + channel['name']
+                                  for channel in channels)
+        admin_msg = 'Archiving %d channels: %s' % (len(channels),
                                                        channel_names)
+        if self.settings.get('admin_channel'):
             if self.settings.get('dry_run'):
                 admin_msg = '[DRY RUN] %s' % admin_msg
             self.send_channel_message(self.settings.get('admin_channel'),
                                       admin_msg)
+        self.logger.info(admin_msg)
+
 
     def main(self):
         """
